@@ -13,16 +13,16 @@ RESET = "\033[0m"
 SRC_DIR = "src"
 FILENAME = "main"
 BIN_PATH = os.path.join("build", "bin", FILENAME)
-OBJ_PATH = os.path.join("build", "obj", f"{FILENAME}.obj")
 LOG_PATH = os.path.join("build", "log", f"{FILENAME}.log")
 
-def run_cmd(cmd, cwd=None):
-    """Run a shell command and return (exit_code, stdout, stderr)."""
+def run_cmd(cmd, cwd=None, input_data=None):
+    """Run a shell command with optional stdin and return (exit_code, stdout, stderr)."""
     try:
         result = subprocess.run(
             cmd,
             cwd=cwd,
             shell=True,
+            input=input_data,
             capture_output=True,
             text=True
         )
@@ -31,11 +31,11 @@ def run_cmd(cmd, cwd=None):
         return 1, "", str(e)
 
 def test_make():
-    print(">>> Testing compilation with make clean all run-save...")
-    code, out, err = run_cmd("make clean all run-save", cwd=SRC_DIR)
+    print(">>> Testing compilation with make clean all...")
+    code, out, err = run_cmd("make clean all", cwd=SRC_DIR)
     if err:
         print("stderr:", err)
-    assert code == 0, f"{RED}Compilation or run-save failed{RESET}"
+    assert code == 0, f"{RED}Compilation failed{RESET}"
     print(f"{GREEN}Compilation OK{RESET}")
 
 def test_binary_exists():
@@ -43,32 +43,34 @@ def test_binary_exists():
     assert os.path.isfile(BIN_PATH), f"{RED}Binary not found at {BIN_PATH}{RESET}"
     print(f"{GREEN}Binary found: {BIN_PATH}{RESET}")
 
-def test_log_exists_and_content():
-    print(">>> Checking if log file exists and has content...")
-    assert os.path.isfile(LOG_PATH), f"{RED}Log file not found at {LOG_PATH}{RESET}"
-    with open(LOG_PATH, "r") as f:
-        content = f.read().strip()
-    assert content, f"{RED}Log file is empty{RESET}"
-    print(f"{GREEN}Log file OK{RESET}")
-    print(f"{BLUE}Log content:\n{content}{RESET}")
-
-def test_code_functionality():
-    """Black-box test: check that the program prints 'Hello World!'"""
+def test_code_functionality(input_data: str):
+    """Black-box test: run the program with sample input and check output."""
     print(">>> Testing program functionality (black-box)...")
-    code, out, err = run_cmd(BIN_PATH)
+
+    code, out, err = run_cmd(BIN_PATH, input_data=input_data)
     if err:
         print("stderr:", err)
-    assert code == 0, f"{RED}Program execution failed{RESET}"
-    assert out == "Hello World!", f"{RED}Unexpected output: '{out}'{RESET}"
-    print(f"{BLUE}Program output: {out}{RESET}")
-    print(f"{GREEN}Program output OK{RESET}")
+
+    # Check exit code
+    assert code == 0, f"{RED}Program execution failed with code {code}{RESET}"
+
+    # Check that output contains expected algorithm titles
+    assert "FCFS Scheduling" in out, f"{RED}Missing FCFS output{RESET}"
+    assert "SJF Scheduling" in out, f"{RED}Missing SJF output{RESET}"
+    assert "Round Robin Scheduling" in out, f"{RED}Missing RR output{RESET}"
+
+    print(f"{BLUE}Program output:\n{out}{RESET}")
+    print(f"{GREEN}Program execution OK{RESET}")
 
 if __name__ == "__main__":
     try:
+        # Provide input for scanf: number of processes and quantum
+        testcase = "\n".join([str(3), str(2)]) + "\n"
+        
         test_make()
         test_binary_exists()
-        test_log_exists_and_content()
-        test_code_functionality()
+        test_code_functionality(testcase)
+
         print(f"\n{GREEN}All tests passed{RESET}")
     except AssertionError as e:
         print(f"{RED}Test failed: {e}{RESET}")
