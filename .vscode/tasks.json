@@ -22,10 +22,7 @@
         {
             "label": "Run Tests",
             "type": "shell",
-            "command": "python",
-            "args": [
-                "test/test_main.py"
-            ],
+            "command": "python test/test_main.py && cd test && make clean unit-tests",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
