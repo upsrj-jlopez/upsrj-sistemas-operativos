@@ -1,5 +1,5 @@
 # Makefile located inside src/
-# Compiles main.c and all sched/process sources into object files and final binary
+# Compiles main.c and all memory algorithm sources into object files and final binary
 # Generates ../build/bin, ../build/obj, and ../build/log
 
 CC      := gcc
@@ -13,10 +13,11 @@ TARGET   := $(BIN_DIR)/$(FILENAME)
 LOGS     := $(LOG_DIR)/$(FILENAME).log
 
 # Source files
-SRC_MAIN     := main.c
-SRC_PROCESS  := process/process.c
-SRC_SCHED    := sched/fcfs/fcfs.c sched/sjf/sjf.c sched/rr/rr.c
-SRC_ALL      := $(SRC_MAIN) $(SRC_PROCESS) $(SRC_SCHED)
+SRC_MAIN   := main.c
+SRC_MEMORY := memory/memory.c
+SRC_FIFO   := fifo/fifo.c
+SRC_LRU    := lru/lru.c
+SRC_ALL    := $(SRC_MAIN) $(SRC_MEMORY) $(SRC_FIFO) $(SRC_LRU)
 
 # Object files
 OBJS := $(patsubst %.c,$(OBJ_DIR)/%.o,$(SRC_ALL))
@@ -32,10 +33,9 @@ $(TARGET): $(OBJS)
 
 # Compile source into object files
 $(OBJ_DIR)/%.o: %.c
-	@mkdir -p $(OBJ_DIR)/process
-	@mkdir -p $(OBJ_DIR)/sched/fcfs
-	@mkdir -p $(OBJ_DIR)/sched/sjf
-	@mkdir -p $(OBJ_DIR)/sched/rr
+	@mkdir -p $(OBJ_DIR)/memory
+	@mkdir -p $(OBJ_DIR)/fifo
+	@mkdir -p $(OBJ_DIR)/lru
 	$(CC) $(CFLAGS) -c $< -o $@
 	@echo "Object file generated at $@"
 

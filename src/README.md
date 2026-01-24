@@ -1,6 +1,6 @@
-# Proyecto de Simulación de Algoritmos de Planificación de Procesos
+# Algoritmos de Reemplazo de Páginas
 
-Este proyecto permite simular distintos **algoritmos de planificación de procesos** en sistemas operativos (FCFS, SJF y Round Robin). La infraestructura está organizada en carpetas para separar la lógica de procesos, los algoritmos de planificación y los binarios generados.
+Este proyecto permite simular distintos **algoritmos de reemplazo de páginas** en sistemas operativos (FIFO y LRU). La infraestructura está organizada en carpetas para separar la lógica de memoria, los algoritmos de reemplazo y los binarios generados.
 
 ---
 
@@ -9,22 +9,70 @@ Este proyecto permite simular distintos **algoritmos de planificación de proces
 ```
 src/
 ├── main.c                # Punto de entrada del programa
-├── process/              # Definición y utilidades del struct Process
-│   └── process.c/.h
-└── sched/                # Algoritmos de planificación
-    ├── fcfs/             # First Come, First Served
-    │   └── fcfs.c/.h
-    ├── sjf/              # Shortest Job First
-    │   └── sjf.c/.h
-    └── rr/               # Round Robin
-        └── rr.c/.h
+├── memory/               # Definición y utilidades para estructuras de memoria
+│   └── memory.c/.h
+├── fifo/                 # Algoritmo FIFO (First-In, First-Out)
+│   └── fifo.c/.h
+└── lru/                  # Algoritmo LRU (Least Recently Used)
+    └── lru.c/.h
 ```
 
-- **`process/`**: Contiene la definición del `struct Process` y funciones auxiliares para inicializar, leer y verificar procesos.  
-- **`sched/`**: Cada subcarpeta implementa un algoritmo de planificación distinto:
-  - `fcfs/`: First Come, First Served.
-  - `sjf/`: Shortest Job First.
-  - `rr/`: Round Robin.
+- **`main.c`**: Define la cadena de referencias y las estructuras de memoria que se usan en las simulaciones.  
+- **`memory/`**: Contiene funciones auxiliares para inicializar, imprimir y verificar el estado de los frames de memoria.  
+- **`fifo/`**: Implementa el algoritmo de reemplazo de páginas **First-In, First-Out**.  
+- **`lru/`**: Implementa el algoritmo de reemplazo de páginas **Least Recently Used**.  
+
+---
+
+## Estructuras definidas en `main.c`
+
+En el archivo `main.c` se inicializan las estructuras necesarias para las simulaciones:
+
+```c
+/* Example reference string for simulation */
+int reference_string[MAX_REF] = {1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5};
+int ref_length = 12;
+
+/* Memory structures */
+int frames[MAX_FRAMES];
+int aux[MAX_FRAMES];       /* Auxiliary array for FIFO */
+int last_used[MAX_FRAMES]; /* Auxiliary array for LRU */
+int frame_count = 3;
+```
+
+- **`reference_string`**: secuencia de páginas a simular.  
+- **`ref_length`**: longitud de la secuencia.  
+- **`frames`**: representan las páginas cargadas en memoria.  
+- **`aux`**: usado por FIFO para llevar el índice circular.  
+- **`last_used`**: usado por LRU para registrar el tiempo de último acceso.  
+- **`frame_count`**: número de frames disponibles en la simulación.  
+
+---
+
+## Constantes definidas en `memory.h`
+
+En el archivo `memory/memory.h` se definen las macros que parametrizan la simulación:
+
+```c
+/** @def MAX_FRAMES
+ *  @brief Maximum number of memory frames available.
+ */
+#define MAX_FRAMES 10
+
+/** @def MAX_REF
+ *  @brief Maximum number of page references in a simulation.
+ */
+#define MAX_REF    50
+
+/** @def EMPTY_PAGE
+ *  @brief Value indicating an empty frame (no page loaded).
+ */
+#define EMPTY_PAGE (-1)
+```
+
+- **`MAX_FRAMES`**: número máximo de frames de memoria disponibles.  
+- **`MAX_REF`**: número máximo de referencias de páginas en una simulación.  
+- **`EMPTY_PAGE`**: valor que indica que un frame está vacío (sin página cargada).  
 
 ---
 
@@ -40,8 +88,8 @@ build/
 ```
 
 - **`bin/`**: contiene el ejecutable principal (`main`) y los binarios de pruebas unitarias.  
-- **`obj/`**: guarda los objetos compilados de cada módulo (`process.o`, `fcfs.o`, etc.).  
-- **`log/`**: almacena los resultados de ejecución cuando se usa el target `run-save`.
+- **`obj/`**: guarda los objetos compilados de cada módulo (`memory.o`, `fifo.o`, `lru.o`).  
+- **`log/`**: almacena los resultados de ejecución cuando se usa el target `run-save`.  
 
 ---
 
@@ -54,103 +102,61 @@ El Makefile dentro de `src` define varios **targets** que automatizan la compila
 - `make run-save` → Ejecuta el binario y guarda la salida en `build/log/main.log`.  
 - `make clean` → Elimina la carpeta `build/` completa.  
 
-El Makefile dentro de `test` define varios **targets** que automatizan la compilación y ejecución:
+El Makefile dentro de `test` define varios **targets** que automatizan la compilación y ejecución:  
 - `make all` → Compila los objetos en modo `UNIT_TEST` en `build/bin/test/`.  
-- `make fcfs-test` → Compila y ejecuta las pruebas unitarias de FCFS.  
-- `make sjf-test` → Compila y ejecuta las pruebas unitarias de SJF.  
-- `make rr-test` → Compila y ejecuta las pruebas unitarias de Round Robin.  
-- `make unit-tests` → Ejecuta todas las pruebas unitarias en secuencia.
-- `make clean` → Elimina la carpeta `build/bin/test` completa. 
+- `make fifo-test` → Compila y ejecuta las pruebas unitarias de FIFO.  
+- `make lru-test` → Compila y ejecuta las pruebas unitarias de LRU.  
+- `make unit-tests` → Ejecuta todas las pruebas unitarias en secuencia.  
+- `make clean` → Elimina la carpeta `build/bin/test` completa.  
 
 ---
 
-## Algoritmos de planificación
+## Algoritmos de reemplazo de páginas
 
-### 1. FCFS (First Come, First Served)
-- **Idea**: Los procesos se atienden en el orden en que llegan.  
-- **Ejemplo gráfico**:
+### 1. FIFO (First-In, First-Out)
+- **Idea**: Se reemplaza la página que lleva más tiempo en memoria (la primera que entró).  
+- **Ejemplo gráfico** (3 frames, referencia `{1,2,3,4,1,2,5,1,2,3,4,5}`):  
   ```
-  Tiempo: 0   1   2   3   4   5   6
-          |---P1---|---P2---|--P3--|
+  Estado final: [5,3,4]
   ```
-- **Ventaja**: Simple y justo en orden de llegada.  
-- **Desventaja**: Puede causar *efecto convoy* (procesos cortos esperando a uno largo).
+- **Ventaja**: Simple de implementar.  
+- **Desventaja**: Puede reemplazar páginas aún útiles, causando más fallos de página.  
 
 ---
 
-### 2. SJF (Shortest Job First)
-- **Idea**: Se atienden primero los procesos con menor tiempo de ejecución.  
-- **Ejemplo gráfico**:
+### 2. LRU (Least Recently Used)
+- **Idea**: Se reemplaza la página que no ha sido usada por más tiempo.  
+- **Ejemplo gráfico** (3 frames, referencia `{1,2,3,4,1,2,5,1,2,3,4,5}`):  
   ```
-  Tiempo: 0   1   2   3   4   5   6
-          |--P2--|--P3--|----P1----|
+  Estado final: [3,4,5]
   ```
-- **Ventaja**: Minimiza el tiempo promedio de espera.  
-- **Desventaja**: Puede causar inanición de procesos largos.
-
----
-
-### 3. RR (Round Robin)
-- **Idea**: Cada proceso recibe un *quantum* de CPU en ciclos.  
-- **Ejemplo gráfico** (quantum = 2):
-  ```
-  Tiempo: 0   1   2   3   4   5   6   7   8
-          |P1|P2|P3|P1|P2|P3|P1|P2|...
-  ```
-- **Ventaja**: Justo y equitativo, ideal para sistemas interactivos.  
-- **Desventaja**: El rendimiento depende del tamaño del quantum.
-
----
-
-## El `struct Process`
-
-Definido en `process/process.h`:
-
-```c
-typedef struct {
-    int id;             // Identificador único del proceso
-    int arrival_time;   // Tiempo de llegada
-    int burst_time;     // Tiempo de ejecución requerido
-    int completion_time;// Tiempo en que termina
-    int waiting_time;   // Tiempo en espera
-    int turnaround_time;// Tiempo total (completion - arrival)
-    int remaining_time; // Tiempo restante (para RR)
-} Process;
-```
-
-- **`id`**: número del proceso (P1, P2, …).  
-- **`arrival_time`**: cuándo llega al sistema.  
-- **`burst_time`**: cuánto tarda en ejecutarse.  
-- **`completion_time`**: cuándo termina.  
-- **`waiting_time`**: cuánto tiempo estuvo esperando.  
-- **`turnaround_time`**: tiempo total desde llegada hasta finalización.  
-- **`remaining_time`**: usado en Round Robin para controlar el quantum.
+- **Ventaja**: Se aproxima mejor al óptimo, minimizando fallos de página.  
+- **Desventaja**: Requiere llevar registro del uso reciente de cada página.  
 
 ---
 
 ## Flujo de ejecución
 
-1. El usuario ingresa:
-   - Número de procesos.
-   - Quantum para Round Robin.
-2. Se leen los procesos y se inicializan.
-3. Se ejecutan los tres algoritmos:
-   - FCFS → resultados.
-   - SJF → resultados.
-   - RR → resultados.
-4. Se imprimen tablas comparativas con tiempos de espera y turnaround.
+1. El usuario define en `main.c`:  
+   - Cadena de referencias de páginas (`reference_string`).  
+   - Número de frames disponibles (`frame_count`).  
+2. Se inicializan las estructuras de memoria (`frames`, `aux`, `last_used`).  
+3. Se ejecutan los algoritmos:  
+   - FIFO → resultados.  
+   - LRU → resultados.  
+4. Se imprimen los estados de los frames en cada paso y el estado final.  
 
 ---
 
 ## Objetivo didáctico
 
-Este proyecto permite a los alumnos:
-- Comprender cómo se implementan distintos algoritmos de planificación.  
-- Observar las diferencias en tiempos de espera y turnaround.  
+Este proyecto permite a los alumnos:  
+- Comprender cómo funcionan los algoritmos de reemplazo de páginas en sistemas operativos.  
+- Observar las diferencias entre FIFO y LRU en términos de fallos de página.  
 - Practicar con código modular y reutilizable.  
 - Aprender a estructurar proyectos en C con carpetas y Makefiles.  
 
 ---
 
-**Autor:** Jesús Salvador López Ortega
-[LinkedIn](https://www.linkedin.com/in/jesus-salvador-lopez-ortega/) | [GitHub](https://github.com/chucholoport) | [Correo Institucional](mailto:jlopez@upsrj.edu.mx)
+**Autor:** Jesús Salvador López Ortega  
+[LinkedIn](https://www.linkedin.com/in/jesus-salvador-lopez-ortega/) | [GitHub](https://github.com/chucholoport) | [Correo Institucional](mailto:jlopez@upsrj.edu.mx)  
