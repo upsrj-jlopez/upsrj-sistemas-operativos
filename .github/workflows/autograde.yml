@@ -38,3 +38,9 @@ jobs:
       - name: Run autograde tests
         run: |
           python test/test_main.py
+
+      # Step 5: Run unit tests
+      - name: Run unit tests
+        run: |
+          cd test
+          make clean unit-tests
