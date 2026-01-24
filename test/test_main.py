@@ -15,14 +15,46 @@ FILENAME = "main"
 BIN_PATH = os.path.join("build", "bin", FILENAME)
 LOG_PATH = os.path.join("build", "log", f"{FILENAME}.log")
 
-def run_cmd(cmd, cwd=None, input_data=None):
-    """Run a shell command with optional stdin and return (exit_code, stdout, stderr)."""
+EXPECTED_OUTPUT = """=== Memory Management Simulation ===
+
+FIFO Page Replacement:
+[ - - - ]
+[ 1 - - ]
+[ 1 2 - ]
+[ 1 2 3 ]
+[ 4 2 3 ]
+[ 4 1 3 ]
+[ 4 1 2 ]
+[ 5 1 2 ]
+[ 5 1 2 ]
+[ 5 1 2 ]
+[ 5 3 2 ]
+[ 5 3 4 ]
+[ 5 3 4 ]
+
+LRU Page Replacement:
+[ - - - ]
+[ 1 - - ]
+[ 1 2 - ]
+[ 1 2 3 ]
+[ 4 2 3 ]
+[ 4 1 3 ]
+[ 4 1 2 ]
+[ 5 1 2 ]
+[ 5 1 2 ]
+[ 5 1 2 ]
+[ 3 1 2 ]
+[ 3 4 2 ]
+[ 3 4 5 ]
+"""
+
+def run_cmd(cmd, cwd=None):
+    """Run a shell command and return (exit_code, stdout, stderr)."""
     try:
         result = subprocess.run(
             cmd,
             cwd=cwd,
             shell=True,
-            input=input_data,
             capture_output=True,
             text=True
         )
@@ -43,33 +75,28 @@ def test_binary_exists():
     assert os.path.isfile(BIN_PATH), f"{RED}Binary not found at {BIN_PATH}{RESET}"
     print(f"{GREEN}Binary found: {BIN_PATH}{RESET}")
 
-def test_code_functionality(input_data: str):
-    """Black-box test: run the program with sample input and check output."""
+def test_code_functionality():
     print(">>> Testing program functionality (black-box)...")
 
-    code, out, err = run_cmd(BIN_PATH, input_data=input_data)
+    code, out, err = run_cmd(BIN_PATH)
     if err:
         print("stderr:", err)
 
-    # Check exit code
     assert code == 0, f"{RED}Program execution failed with code {code}{RESET}"
 
-    # Check that output contains expected algorithm titles
-    assert "FCFS Scheduling" in out, f"{RED}Missing FCFS output{RESET}"
-    assert "SJF Scheduling" in out, f"{RED}Missing SJF output{RESET}"
-    assert "Round Robin Scheduling" in out, f"{RED}Missing RR output{RESET}"
-
     print(f"{BLUE}Program output:\n{out}{RESET}")
+    
+    # Compare exact output
+    assert out.strip() == EXPECTED_OUTPUT.strip(), f"{RED}Output does not match expected{RESET}"
+
     print(f"{GREEN}Program execution OK{RESET}")
 
 if __name__ == "__main__":
     try:
-        # Provide input for scanf: number of processes and quantum
-        testcase = "\n".join([str(3), str(2)]) + "\n"
         
         test_make()
         test_binary_exists()
-        test_code_functionality(testcase)
+        test_code_functionality()
 
         print(f"\n{GREEN}All tests passed{RESET}")
     except AssertionError as e:
