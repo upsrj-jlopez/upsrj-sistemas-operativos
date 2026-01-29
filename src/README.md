@@ -1,162 +1,329 @@
-# Algoritmos de Reemplazo de Páginas
+# Práctica: Análisis de la Administración de Memoria en Linux (Ubuntu 22.04)
 
-Este proyecto permite simular distintos **algoritmos de reemplazo de páginas** en sistemas operativos (FIFO y LRU). La infraestructura está organizada en carpetas para separar la lógica de memoria, los algoritmos de reemplazo y los binarios generados.
-
----
-
-## Infraestructura del proyecto
-
-```
-src/
-├── main.c                # Punto de entrada del programa
-├── memory/               # Definición y utilidades para estructuras de memoria
-│   └── memory.c/.h
-├── fifo/                 # Algoritmo FIFO (First-In, First-Out)
-│   └── fifo.c/.h
-└── lru/                  # Algoritmo LRU (Least Recently Used)
-    └── lru.c/.h
-```
-
-- **`main.c`**: Define la cadena de referencias y las estructuras de memoria que se usan en las simulaciones.  
-- **`memory/`**: Contiene funciones auxiliares para inicializar, imprimir y verificar el estado de los frames de memoria.  
-- **`fifo/`**: Implementa el algoritmo de reemplazo de páginas **First-In, First-Out**.  
-- **`lru/`**: Implementa el algoritmo de reemplazo de páginas **Least Recently Used**.  
-
----
-
-## Estructuras definidas en `main.c`
-
-En el archivo `main.c` se inicializan las estructuras necesarias para las simulaciones:
-
-```c
-/* Example reference string for simulation */
-int reference_string[MAX_REF] = {1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5};
-int ref_length = 12;
-
-/* Memory structures */
-int frames[MAX_FRAMES];
-int aux[MAX_FRAMES];       /* Auxiliary array for FIFO */
-int last_used[MAX_FRAMES]; /* Auxiliary array for LRU */
-int frame_count = 3;
-```
-
-- **`reference_string`**: secuencia de páginas a simular.  
-- **`ref_length`**: longitud de la secuencia.  
-- **`frames`**: representan las páginas cargadas en memoria.  
-- **`aux`**: usado por FIFO para llevar el índice circular.  
-- **`last_used`**: usado por LRU para registrar el tiempo de último acceso.  
-- **`frame_count`**: número de frames disponibles en la simulación.  
+- [Práctica: Análisis de la Administración de Memoria en Linux (Ubuntu 22.04)](#práctica-análisis-de-la-administración-de-memoria-en-linux-ubuntu-2204)
+  - [Objetivo general](#objetivo-general)
+  - [¿Qué vas a hacer en esta práctica?](#qué-vas-a-hacer-en-esta-práctica)
+  - [Estructura del proyecto](#estructura-del-proyecto)
+  - [¿Cómo leer el archivo `mem_analysis.sh`?](#cómo-leer-el-archivo-mem_analysissh)
+  - [Conceptos teóricos clave](#conceptos-teóricos-clave)
+    - [Memoria RAM (memoria principal)](#memoria-ram-memoria-principal)
+    - [Frame (marco de página)](#frame-marco-de-página)
+    - [Page (página)](#page-página)
+    - [Memoria virtual](#memoria-virtual)
+    - [Paging (paginación)](#paging-paginación)
+    - [Swap](#swap)
+    - [Swappiness](#swappiness)
+    - [MMU (Memory Management Unit)](#mmu-memory-management-unit)
+    - [Thrashing](#thrashing)
+  - [¿Cómo escribir el análisis en el script?](#cómo-escribir-el-análisis-en-el-script)
+  - [Restricciones importantes](#restricciones-importantes)
+  - [Criterios generales de evaluación](#criterios-generales-de-evaluación)
+  - [Notas importantes sobre la evaluación automática](#notas-importantes-sobre-la-evaluación-automática)
+    - [Evaluación por secciones](#evaluación-por-secciones)
+    - [SECTION 7: THEORETICAL RELATION](#section-7-theoretical-relation)
+    - [CONCLUSIONS](#conclusions)
+    - [Recomendaciones finales](#recomendaciones-finales)
+  - [Cierre](#cierre)
 
 ---
 
-## Constantes definidas en `memory.h`
+## Objetivo general
 
-En el archivo `memory/memory.h` se definen las macros que parametrizan la simulación:
+Comprender cómo un sistema operativo Linux administra la memoria principal y la memoria virtual, observando su comportamiento real mediante un script en Bash que recolecta información del sistema y documenta el análisis del estudiante de forma reproducible.
 
-```c
-/** @def MAX_FRAMES
- *  @brief Maximum number of memory frames available.
- */
-#define MAX_FRAMES 10
+---
 
-/** @def MAX_REF
- *  @brief Maximum number of page references in a simulation.
- */
-#define MAX_REF    50
+## ¿Qué vas a hacer en esta práctica?
 
-/** @def EMPTY_PAGE
- *  @brief Value indicating an empty frame (no page loaded).
- */
-#define EMPTY_PAGE (-1)
+No ejecutarás comandos manualmente.
+Tu objetivo es completar un script `.sh`, entendiendo:
+
+* Qué información debe obtener cada sección
+* Qué comandos de Linux pueden proporcionar esa información
+* Cómo registrar evidencia y análisis automáticamente en un archivo de log
+
+El resultado final será el archivo:
+
+```text
+out/mem_analysis.log
 ```
 
-- **`MAX_FRAMES`**: número máximo de frames de memoria disponibles.  
-- **`MAX_REF`**: número máximo de referencias de páginas en una simulación.  
-- **`EMPTY_PAGE`**: valor que indica que un frame está vacío (sin página cargada).  
+que contendrá:
+
+* Información real del sistema
+* Tu análisis técnico
+* Tu autoría (usuario de GitHub)
 
 ---
 
-## Carpeta `build/`
+## Estructura del proyecto
 
-Cuando se compila el proyecto, se crea automáticamente la carpeta `build/` con tres subcarpetas:
-
+```text
+tu-repositorio/
+├── src/
+│   └── mem_analysis.sh
+└── out/
+    └── mem_analysis.log
 ```
-build/
-├── bin/   # Binarios ejecutables (main, tests)
-├── obj/   # Archivos objeto (.o) generados por cada fuente
-└── log/   # Archivos de salida (.log) con resultados de ejecución
+
+No modifiques esta estructura.
+
+---
+
+## ¿Cómo leer el archivo `mem_analysis.sh`?
+
+El script está dividido en secciones numeradas.
+
+Cada sección contiene:
+
+1. Comentarios (`#`)
+   Explican qué debe hacerse y qué se espera obtener.
+
+2. Bloques `TODO`
+   Lugares donde debes:
+
+   * Escribir el comando correcto
+   * Redactar tu análisis usando `echo`
+
+3. Notas (`NOTE:`)
+
+   * Explican qué tipo de comando se espera
+   * Incluyen referencias oficiales (páginas `man`, documentación del kernel)
+   * Mencionan flags útiles, sin dar la solución directa
+
+No elimines comentarios ni notas; forman parte de la evaluación.
+
+---
+
+## Conceptos teóricos clave
+
+Los siguientes conceptos aparecen directa o indirectamente en el script y deben comprenderse para realizar el análisis correctamente.
+
+---
+
+### Memoria RAM (memoria principal)
+
+Es la memoria física instalada en el sistema. En ella residen los programas y datos que están siendo utilizados activamente.
+
+Características:
+
+* Rápida
+* Volátil
+* Limitada
+
+En Linux, la RAM se divide internamente en frames.
+
+---
+
+### Frame (marco de página)
+
+Un frame es un bloque fijo de memoria física.
+
+* Tamaño típico: 4 KB
+* Unidad mínima de asignación en la RAM
+* El sistema operativo asigna frames a los procesos
+
+Los frames existen únicamente en memoria física.
+
+---
+
+### Page (página)
+
+Una page es un bloque de memoria virtual.
+
+* Tiene el mismo tamaño que un frame
+* Pertenece al espacio de direcciones de un proceso
+* Puede estar en RAM, en swap o no estar cargada
+
+Las pages permiten que un proceso crea que tiene más memoria de la que realmente existe.
+
+---
+
+### Memoria virtual
+
+Es una abstracción que permite:
+
+* Ejecutar programas más grandes que la RAM
+* Aislar procesos entre sí
+* Usar el disco como extensión de la memoria
+
+Linux implementa memoria virtual mediante paginación.
+
+---
+
+### Paging (paginación)
+
+Es el mecanismo mediante el cual:
+
+* Las pages se mueven entre RAM y swap
+* El sistema decide qué mantener en memoria física
+* Se optimiza el uso de la RAM
+
+Cuando una page sale de RAM ocurre un page-out; cuando regresa ocurre un page-in.
+
+---
+
+### Swap
+
+El swap es un espacio en disco utilizado como respaldo de la RAM.
+
+* Puede ser una partición o un archivo
+* Es considerablemente más lento que la RAM
+* Permite evitar que el sistema se quede sin memoria
+
+El uso de swap no es un error, pero su uso excesivo puede degradar el rendimiento.
+
+---
+
+### Swappiness
+
+Es un parámetro del kernel que indica:
+
+* Qué tan agresivamente el sistema usa swap
+* Valores bajos priorizan la RAM
+* Valores altos priorizan el swap
+
+Este parámetro influye directamente en el comportamiento del paging.
+
+---
+
+### MMU (Memory Management Unit)
+
+La MMU es un componente de hardware que:
+
+* Traduce direcciones virtuales a direcciones físicas
+* Aplica protección de memoria
+* Hace posible la memoria virtual
+
+El sistema operativo configura la MMU, pero la traducción ocurre en hardware.
+
+---
+
+### Thrashing
+
+El thrashing ocurre cuando:
+
+* El sistema pasa más tiempo intercambiando pages
+* Que ejecutando procesos
+* El rendimiento general se degrada severamente
+
+Indicadores comunes:
+
+* Uso intensivo de swap
+* Alto número de page-ins y page-outs
+* Sistema lento aun con baja carga de CPU
+
+---
+
+## ¿Cómo escribir el análisis en el script?
+
+Todo el análisis debe escribirse utilizando:
+
+```bash
+echo "Texto del análisis" >> "${LOG_FILE}"
 ```
 
-- **`bin/`**: contiene el ejecutable principal (`main`) y los binarios de pruebas unitarias.  
-- **`obj/`**: guarda los objetos compilados de cada módulo (`memory.o`, `fifo.o`, `lru.o`).  
-- **`log/`**: almacena los resultados de ejecución cuando se usa el target `run-save`.  
+No se debe imprimir análisis por pantalla; todo debe almacenarse en el archivo de log.
 
 ---
 
-## Macros disponibles en el Makefile
+## Restricciones importantes
 
-El Makefile dentro de `src` define varios **targets** que automatizan la compilación y ejecución:
-
-- `make all` → Compila todos los objetos y genera el binario principal en `build/bin/main`.  
-- `make run` → Ejecuta el binario principal directamente.  
-- `make run-save` → Ejecuta el binario y guarda la salida en `build/log/main.log`.  
-- `make clean` → Elimina la carpeta `build/` completa.  
-
-El Makefile dentro de `test` define varios **targets** que automatizan la compilación y ejecución:  
-- `make all` → Compila los objetos en modo `UNIT_TEST` en `build/bin/test/`.  
-- `make fifo-test` → Compila y ejecuta las pruebas unitarias de FIFO.  
-- `make lru-test` → Compila y ejecuta las pruebas unitarias de LRU.  
-- `make unit-tests` → Ejecuta todas las pruebas unitarias en secuencia.  
-- `make clean` → Elimina la carpeta `build/bin/test` completa.  
+* No modificar parámetros del sistema
+* No finalizar procesos
+* No usar interfaces gráficas
+* No eliminar comentarios ni notas
+* No ejecutar el script como superusuario, salvo indicación explícita
 
 ---
 
-## Algoritmos de reemplazo de páginas
+## Criterios generales de evaluación
 
-### 1. FIFO (First-In, First-Out)
-- **Idea**: Se reemplaza la página que lleva más tiempo en memoria (la primera que entró).  
-- **Ejemplo gráfico** (3 frames, referencia `{1,2,3,4,1,2,5,1,2,3,4,5}`):  
-  ```
-  Estado final: [5,3,4]
-  ```
-- **Ventaja**: Simple de implementar.  
-- **Desventaja**: Puede reemplazar páginas aún útiles, causando más fallos de página.  
+Se evaluará:
 
----
+* Selección correcta de comandos
+* Profundidad y claridad del análisis
+* Uso adecuado de los conceptos teóricos
+* Ejecución correcta del script sin errores
+* Evidencia clara en `mem_analysis.log`
+* Identificación explícita del autor mediante usuario de GitHub
 
-### 2. LRU (Least Recently Used)
-- **Idea**: Se reemplaza la página que no ha sido usada por más tiempo.  
-- **Ejemplo gráfico** (3 frames, referencia `{1,2,3,4,1,2,5,1,2,3,4,5}`):  
-  ```
-  Estado final: [3,4,5]
-  ```
-- **Ventaja**: Se aproxima mejor al óptimo, minimizando fallos de página.  
-- **Desventaja**: Requiere llevar registro del uso reciente de cada página.  
+Perfecto 👍
+Te dejo **el apartado actualizado del README**, listo para **agregarse tal cual**, explicando claramente **cómo funciona el tester** y **por qué las keywords deben aparecer explícitamente en el texto** de cada sección.
+
+Puedes insertarlo en una sección tipo **“Notas importantes”** o **“Criterios de evaluación automática”**.
 
 ---
 
-## Flujo de ejecución
+## Notas importantes sobre la evaluación automática
 
-1. El usuario define en `main.c`:  
-   - Cadena de referencias de páginas (`reference_string`).  
-   - Número de frames disponibles (`frame_count`).  
-2. Se inicializan las estructuras de memoria (`frames`, `aux`, `last_used`).  
-3. Se ejecutan los algoritmos:  
-   - FIFO → resultados.  
-   - LRU → resultados.  
-4. Se imprimen los estados de los frames en cada paso y el estado final.  
+Esta práctica cuenta con un **tester automático** que valida el contenido generado por el script `mem_analysis.sh`.
+El tester **no interpreta intenciones** ni evalúa sinónimos: analiza **texto literal** dentro de cada sección del archivo `mem_analysis.log`.
 
----
+### Evaluación por secciones
 
-## Objetivo didáctico
-
-Este proyecto permite a los alumnos:  
-- Comprender cómo funcionan los algoritmos de reemplazo de páginas en sistemas operativos.  
-- Observar las diferencias entre FIFO y LRU en términos de fallos de página.  
-- Practicar con código modular y reutilizable.  
-- Aprender a estructurar proyectos en C con carpetas y Makefiles.  
+Para algunas secciones teóricas, el tester **extrae únicamente el contenido de la sección correspondiente** y lo analiza de forma aislada.
+Esto significa que **las palabras clave deben aparecer explícitamente dentro de esa sección**, no en otra parte del archivo.
 
 ---
 
-**Autor:** Jesús Salvador López Ortega  
-[LinkedIn](https://www.linkedin.com/in/jesus-salvador-lopez-ortega/) | [GitHub](https://github.com/chucholoport) | [Correo Institucional](mailto:jlopez@upsrj.edu.mx)  
+### SECTION 7: THEORETICAL RELATION
+
+En esta sección, el tester valida que el texto incluya **todos los conceptos teóricos fundamentales** de la administración de memoria.
+
+Debes asegurarte de que **las siguientes palabras aparezcan literalmente en el texto de la sección**:
+
+* `page`
+* `frame`
+* `mmu`
+* `swap`
+* `paging`
+* `thrashing`
+
+Notas importantes:
+
+* Las palabras deben aparecer **como parte de una explicación**, no solo listadas.
+* No importa si están en mayúsculas o minúsculas.
+* Si una palabra clave no aparece, **la sección se considera incompleta** y el tester marcará error.
+
+---
+
+### CONCLUSIONS
+
+La sección de conclusiones también se evalúa de forma aislada.
+Debe contener **reflexión real** y no solo frases genéricas.
+
+El tester verifica que el texto incluya explícitamente los siguientes conceptos:
+
+* `memory`
+* `RAM`
+* `swap`
+* `paging`
+* `cache`
+* `performance`
+
+Notas importantes:
+
+* Las conclusiones deben estar escritas como texto explicativo usando `echo`.
+* No se aceptan conclusiones vacías o demasiado superficiales.
+* Si falta alguno de los conceptos clave, el tester marcará la sección como **incompleta**.
+
+---
+
+### Recomendaciones finales
+
+* Escribe siempre **frases completas**, no listas sueltas.
+* Asegúrate de que cada sección tenga **contenido propio**, incluso si los conceptos se repiten.
+* Ejecuta el tester después de completar cada sección para validar tu progreso de forma incremental.
+
+---
+
+## Cierre
+
+Esta práctica busca que el estudiante:
+
+* Observe el sistema operativo en funcionamiento real
+* Conecte teoría con evidencia práctica
+* Documente técnicamente su análisis de forma reproducible
+
+El script debe entenderse como una herramienta de diagnóstico del sistema operativo.

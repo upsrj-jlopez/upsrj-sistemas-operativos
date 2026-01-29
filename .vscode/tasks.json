@@ -2,14 +2,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build and Run",
+            "label": "Run Script",
             "type": "shell",
-            "command": "make",
-            "args": [
-                "clean",
-                "all",
-                "run-save"
-            ],
+            "command": "./mem_analysis.sh",
             "options": {
                 "cwd": "${workspaceFolder}/src"
             },
@@ -22,7 +17,7 @@
         {
             "label": "Run Tests",
             "type": "shell",
-            "command": "python test/test_main.py && cd test && make clean unit-tests",
+            "command": "./test/test_mem_analysis.sh",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
