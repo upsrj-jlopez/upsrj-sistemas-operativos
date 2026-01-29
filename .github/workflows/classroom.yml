@@ -1,0 +1,35 @@
+name: Classroom
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  autograde:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Ensure scripts are executable
+      - name: Set execute permissions
+        run: |
+          chmod +x src/mem_analysis.sh
+          chmod +x test/test_mem_analysis.sh
+
+      # Step 3: Run student script
+      - name: Run memory analysis script
+        run: |
+          set -e
+          cd src
+          ./mem_analysis.sh
+
+      # Step 4: Run autograde tester
+      - name: Run autograde tests
+        run: |
+          set -e
+          ./test/test_mem_analysis.sh
