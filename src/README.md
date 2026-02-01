@@ -1,6 +1,6 @@
-# Algoritmos de Reemplazo de Páginas
+# File Handling y Gestión de Archivos en Sistemas Operativos
 
-Este proyecto permite simular distintos **algoritmos de reemplazo de páginas** en sistemas operativos (FIFO y LRU). La infraestructura está organizada en carpetas para separar la lógica de memoria, los algoritmos de reemplazo y los binarios generados.
+Este proyecto permite explorar el **manejo de archivos a bajo nivel** en sistemas operativos usando llamadas POSIX (`open`, `read`, `write`, `close`). El objetivo principal es que el alumno comprenda cómo el sistema operativo representa los archivos mediante **file descriptors (índices enteros)** y cómo el contenido de un archivo debe cargarse explícitamente en memoria dinámica usando `malloc`.
 
 ---
 
@@ -8,155 +8,112 @@ Este proyecto permite simular distintos **algoritmos de reemplazo de páginas** 
 
 ```
 src/
-├── main.c                # Punto de entrada del programa
-├── memory/               # Definición y utilidades para estructuras de memoria
-│   └── memory.c/.h
-├── fifo/                 # Algoritmo FIFO (First-In, First-Out)
-│   └── fifo.c/.h
-└── lru/                  # Algoritmo LRU (Least Recently Used)
-    └── lru.c/.h
+├── main.c          # Punto de entrada del programa
+├── utils/          # Utilidades de manejo de archivos
+│   ├── file_utils.c
+│   └── file_utils.h
 ```
 
-- **`main.c`**: Define la cadena de referencias y las estructuras de memoria que se usan en las simulaciones.  
-- **`memory/`**: Contiene funciones auxiliares para inicializar, imprimir y verificar el estado de los frames de memoria.  
-- **`fifo/`**: Implementa el algoritmo de reemplazo de páginas **First-In, First-Out**.  
-- **`lru/`**: Implementa el algoritmo de reemplazo de páginas **Least Recently Used**.  
+* **`main.c`**: Controla el flujo general del programa. Solicita la lectura de un archivo, manipula su contenido en memoria y genera un archivo de salida.
+* **`utils/file_utils.c`**: Implementa el acceso a archivos usando llamadas al sistema y la gestión de memoria dinámica.
+* **`utils/file_utils.h`**: Declara las funciones públicas y documenta su comportamiento mediante comentarios Doxygen.
 
 ---
 
-## Estructuras definidas en `main.c`
+## Flujo general del programa
 
-En el archivo `main.c` se inicializan las estructuras necesarias para las simulaciones:
+El programa se ejecuta desde consola con dos argumentos:
 
-```c
-/* Example reference string for simulation */
-int reference_string[MAX_REF] = {1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5};
-int ref_length = 12;
-
-/* Memory structures */
-int frames[MAX_FRAMES];
-int aux[MAX_FRAMES];       /* Auxiliary array for FIFO */
-int last_used[MAX_FRAMES]; /* Auxiliary array for LRU */
-int frame_count = 3;
+```bash
+./file_exercise input.txt output.txt
 ```
 
-- **`reference_string`**: secuencia de páginas a simular.  
-- **`ref_length`**: longitud de la secuencia.  
-- **`frames`**: representan las páginas cargadas en memoria.  
-- **`aux`**: usado por FIFO para llevar el índice circular.  
-- **`last_used`**: usado por LRU para registrar el tiempo de último acceso.  
-- **`frame_count`**: número de frames disponibles en la simulación.  
+1. Se abre el archivo de entrada usando `open()`.
+2. Se obtiene su tamaño y se reserva memoria dinámica con `malloc()`.
+3. El contenido del archivo se lee completamente en memoria.
+4. El contenido se manipula directamente desde el heap.
+5. Se escribe el resultado en un archivo de salida usando `write()`.
+6. Se libera la memoria reservada y se cierran los descriptores de archivo.
 
 ---
 
-## Constantes definidas en `memory.h`
+## Uso de File Descriptors
 
-En el archivo `memory/memory.h` se definen las macros que parametrizan la simulación:
+En este proyecto **no se utilizan funciones de la librería estándar (`fopen`, `fread`, etc.)**. En su lugar:
 
-```c
-/** @def MAX_FRAMES
- *  @brief Maximum number of memory frames available.
- */
-#define MAX_FRAMES 10
+* `open()` devuelve un **file descriptor**, que es un entero que el sistema operativo usa como índice a una tabla interna de archivos abiertos.
+* Todas las operaciones (`read`, `write`, `lseek`, `close`) se realizan usando este descriptor.
 
-/** @def MAX_REF
- *  @brief Maximum number of page references in a simulation.
- */
-#define MAX_REF    50
+Este enfoque permite observar directamente cómo el sistema operativo abstrae el acceso a archivos.
 
-/** @def EMPTY_PAGE
- *  @brief Value indicating an empty frame (no page loaded).
- */
-#define EMPTY_PAGE (-1)
-```
+---
 
-- **`MAX_FRAMES`**: número máximo de frames de memoria disponibles.  
-- **`MAX_REF`**: número máximo de referencias de páginas en una simulación.  
-- **`EMPTY_PAGE`**: valor que indica que un frame está vacío (sin página cargada).  
+## Gestión de memoria dinámica
+
+El contenido del archivo **no se carga automáticamente en memoria**. El alumno debe:
+
+* Determinar el tamaño del archivo.
+* Reservar exactamente la memoria necesaria usando `malloc()`.
+* Leer los datos al buffer dinámico.
+* Manipular los datos desde memoria.
+* Liberar correctamente la memoria con `free()`.
+
+Esto refuerza la relación entre **almacenamiento secundario (archivo)** y **memoria principal (RAM)**.
 
 ---
 
 ## Carpeta `build/`
 
-Cuando se compila el proyecto, se crea automáticamente la carpeta `build/` con tres subcarpetas:
+Al compilar el proyecto, se genera automáticamente la carpeta `build/`:
 
 ```
 build/
-├── bin/   # Binarios ejecutables (main, tests)
-├── obj/   # Archivos objeto (.o) generados por cada fuente
-└── log/   # Archivos de salida (.log) con resultados de ejecución
+├── bin/   # Binarios ejecutables
+├── obj/   # Archivos objeto (.o)
+└── log/   # Salida de ejecución (opcional)
 ```
 
-- **`bin/`**: contiene el ejecutable principal (`main`) y los binarios de pruebas unitarias.  
-- **`obj/`**: guarda los objetos compilados de cada módulo (`memory.o`, `fifo.o`, `lru.o`).  
-- **`log/`**: almacena los resultados de ejecución cuando se usa el target `run-save`.  
+* **`bin/`**: contiene el ejecutable final (`file_exercise`).
+* **`obj/`**: almacena los archivos objeto generados durante la compilación.
+* **`log/`**: guarda la salida del programa si se redirige o automatiza su ejecución.
 
 ---
 
-## Macros disponibles en el Makefile
+## Compilación
 
-El Makefile dentro de `src` define varios **targets** que automatizan la compilación y ejecución:
+Ejemplo de compilación manual:
 
-- `make all` → Compila todos los objetos y genera el binario principal en `build/bin/main`.  
-- `make run` → Ejecuta el binario principal directamente.  
-- `make run-save` → Ejecuta el binario y guarda la salida en `build/log/main.log`.  
-- `make clean` → Elimina la carpeta `build/` completa.  
-
-El Makefile dentro de `test` define varios **targets** que automatizan la compilación y ejecución:  
-- `make all` → Compila los objetos en modo `UNIT_TEST` en `build/bin/test/`.  
-- `make fifo-test` → Compila y ejecuta las pruebas unitarias de FIFO.  
-- `make lru-test` → Compila y ejecuta las pruebas unitarias de LRU.  
-- `make unit-tests` → Ejecuta todas las pruebas unitarias en secuencia.  
-- `make clean` → Elimina la carpeta `build/bin/test` completa.  
+```bash
+gcc -Wall -Wextra -o file_exercise src/main.c src/utils/file_utils.c
+```
 
 ---
 
-## Algoritmos de reemplazo de páginas
+## Actividades a desarrollar (TODO)
 
-### 1. FIFO (First-In, First-Out)
-- **Idea**: Se reemplaza la página que lleva más tiempo en memoria (la primera que entró).  
-- **Ejemplo gráfico** (3 frames, referencia `{1,2,3,4,1,2,5,1,2,3,4,5}`):  
-  ```
-  Estado final: [5,3,4]
-  ```
-- **Ventaja**: Simple de implementar.  
-- **Desventaja**: Puede reemplazar páginas aún útiles, causando más fallos de página.  
+El alumno deberá completar los bloques marcados como `TODO` en el código fuente:
 
----
+* Apertura y cierre correcto de archivos.
+* Cálculo del tamaño del archivo.
+* Reserva y liberación de memoria dinámica.
+* Lectura y escritura completa del contenido.
+* Manipulación del buffer en memoria.
 
-### 2. LRU (Least Recently Used)
-- **Idea**: Se reemplaza la página que no ha sido usada por más tiempo.  
-- **Ejemplo gráfico** (3 frames, referencia `{1,2,3,4,1,2,5,1,2,3,4,5}`):  
-  ```
-  Estado final: [3,4,5]
-  ```
-- **Ventaja**: Se aproxima mejor al óptimo, minimizando fallos de página.  
-- **Desventaja**: Requiere llevar registro del uso reciente de cada página.  
-
----
-
-## Flujo de ejecución
-
-1. El usuario define en `main.c`:  
-   - Cadena de referencias de páginas (`reference_string`).  
-   - Número de frames disponibles (`frame_count`).  
-2. Se inicializan las estructuras de memoria (`frames`, `aux`, `last_used`).  
-3. Se ejecutan los algoritmos:  
-   - FIFO → resultados.  
-   - LRU → resultados.  
-4. Se imprimen los estados de los frames en cada paso y el estado final.  
+No se permite el uso de funciones de alto nivel de la librería estándar de C para archivos.
 
 ---
 
 ## Objetivo didáctico
 
-Este proyecto permite a los alumnos:  
-- Comprender cómo funcionan los algoritmos de reemplazo de páginas en sistemas operativos.  
-- Observar las diferencias entre FIFO y LRU en términos de fallos de página.  
-- Practicar con código modular y reutilizable.  
-- Aprender a estructurar proyectos en C con carpetas y Makefiles.  
+Este ejercicio permite a los alumnos:
+
+* Comprender cómo el sistema operativo gestiona archivos mediante índices (file descriptors).
+* Relacionar archivos con estructuras internas del kernel.
+* Practicar el uso de memoria dinámica aplicada a un caso real.
+* Reforzar el uso de llamadas al sistema en C.
+* Desarrollar código modular y documentado profesionalmente.
 
 ---
 
-**Autor:** Jesús Salvador López Ortega  
-[LinkedIn](https://www.linkedin.com/in/jesus-salvador-lopez-ortega/) | [GitHub](https://github.com/chucholoport) | [Correo Institucional](mailto:jlopez@upsrj.edu.mx)  
+**Autor:** Jesús Salvador López Ortega
+[LinkedIn](https://www.linkedin.com/in/jesus-salvador-lopez-ortega/) | [GitHub](https://github.com/chucholoport) | [Correo Institucional](mailto:jlopez@upsrj.edu.mx)
