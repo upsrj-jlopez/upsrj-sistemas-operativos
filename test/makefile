@@ -10,26 +10,18 @@ BIN_DIR := ../build/bin
 TEST_BIN_DIR := $(BIN_DIR)/test
 
 # Object files from src build
-FIFO_OBJ    := $(OBJ_DIR)/fifo/fifo.o
-LRU_OBJ     := $(OBJ_DIR)/lru/lru.o
-MEMORY_OBJ  := $(OBJ_DIR)/memory/memory.o
+FILE_UTILS_OBJ := $(OBJ_DIR)/utils/file_utils.o
 
 # Default rule: run all unit tests
 all: unit-tests
 
-fifo-test: test_fifo.c $(MEMORY_OBJ) $(FIFO_OBJ)
+test-file-utils: test_file_utils.c $(MEMORY_OBJ) $(FILE_UTILS_OBJ)
 	@mkdir -p $(TEST_BIN_DIR)
-	$(CC) $(CFLAGS) $^ -o $(TEST_BIN_DIR)/fifo_test
-	@echo "Running FIFO test..."
-	@$(TEST_BIN_DIR)/fifo_test
+	$(CC) $(CFLAGS) $^ -o $(TEST_BIN_DIR)/test-file-utils
+	@echo "Running file utils tests..."
+	@$(TEST_BIN_DIR)/test-file-utils
 
-lru-test: test_lru.c $(MEMORY_OBJ) $(LRU_OBJ)
-	@mkdir -p $(TEST_BIN_DIR)
-	$(CC) $(CFLAGS) $^ -o $(TEST_BIN_DIR)/lru_test
-	@echo "Running LRU test..."
-	@$(TEST_BIN_DIR)/lru_test
-
-unit-tests: fifo-test lru-test
+unit-tests: test-file-utils
 	@echo "All unit tests executed successfully."
 
 clean:

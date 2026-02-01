@@ -13,40 +13,8 @@ RESET = "\033[0m"
 SRC_DIR = "src"
 FILENAME = "main"
 BIN_PATH = os.path.join("build", "bin", FILENAME)
-LOG_PATH = os.path.join("build", "log", f"{FILENAME}.log")
-
-EXPECTED_OUTPUT = """=== Memory Management Simulation ===
-
-FIFO Page Replacement:
-[ - - - ]
-[ 1 - - ]
-[ 1 2 - ]
-[ 1 2 3 ]
-[ 4 2 3 ]
-[ 4 1 3 ]
-[ 4 1 2 ]
-[ 5 1 2 ]
-[ 5 1 2 ]
-[ 5 1 2 ]
-[ 5 3 2 ]
-[ 5 3 4 ]
-[ 5 3 4 ]
-
-LRU Page Replacement:
-[ - - - ]
-[ 1 - - ]
-[ 1 2 - ]
-[ 1 2 3 ]
-[ 4 2 3 ]
-[ 4 1 3 ]
-[ 4 1 2 ]
-[ 5 1 2 ]
-[ 5 1 2 ]
-[ 5 1 2 ]
-[ 3 1 2 ]
-[ 3 4 2 ]
-[ 3 4 5 ]
-"""
+INPUT_FILE = os.path.join("src", "input.txt")
+OUTPUT_FILE = os.path.join("build", "output.txt")
 
 def run_cmd(cmd, cwd=None):
     """Run a shell command and return (exit_code, stdout, stderr)."""
@@ -78,26 +46,45 @@ def test_binary_exists():
 def test_code_functionality():
     print(">>> Testing program functionality (black-box)...")
 
-    code, out, err = run_cmd(BIN_PATH)
+    # Execute binary (no arguments expected)
+    code, out, err = run_cmd(os.path.join("..", BIN_PATH), cwd=SRC_DIR)
     if err:
         print("stderr:", err)
 
     assert code == 0, f"{RED}Program execution failed with code {code}{RESET}"
 
-    print(f"{BLUE}Program output:\n{out}{RESET}")
-    
-    # Compare exact output
-    assert out.strip() == EXPECTED_OUTPUT.strip(), f"{RED}Output does not match expected{RESET}"
+    # Check input file exists
+    assert os.path.isfile(INPUT_FILE), f"{RED}Input file not found: {INPUT_FILE}{RESET}"
 
+    # Check output file generated
+    assert os.path.isfile(OUTPUT_FILE), f"{RED}Output file not generated: {OUTPUT_FILE}{RESET}"
+    print(f"{GREEN}Output file generated{RESET}")
+
+    # Read files
+    with open(INPUT_FILE, "r", encoding="utf-8") as f:
+        input_data = f.read()
+
+    with open(OUTPUT_FILE, "r", encoding="utf-8") as f:
+        output_data = f.read()
+
+    # Output must not be empty
+    assert len(output_data) > 0, f"{RED}Output file is empty{RESET}"
+
+    # Output should differ from input (enforces memory manipulation)
+    assert output_data != input_data, (
+        f"{RED}Output content is identical to input. "
+        f"Expected in-memory manipulation.{RESET}"
+    )
+
+    print(f"{BLUE}Input size : {len(input_data)} bytes{RESET}")
+    print(f"{BLUE}Output size: {len(output_data)} bytes{RESET}")
     print(f"{GREEN}Program execution OK{RESET}")
 
 if __name__ == "__main__":
     try:
-        
         test_make()
         test_binary_exists()
         test_code_functionality()
-
         print(f"\n{GREEN}All tests passed{RESET}")
     except AssertionError as e:
         print(f"{RED}Test failed: {e}{RESET}")

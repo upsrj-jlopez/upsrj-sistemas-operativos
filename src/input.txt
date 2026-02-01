@@ -1,0 +1,19 @@
+Operating Systems – File Handling Exercise
+
+This file is used as a fixed input for the practice.
+The goal is to understand how files are handled at low level
+using POSIX system calls such as open(), read(), write() and close().
+
+Key concepts to observe:
+- A file is accessed using a file descriptor (an integer index)
+- File contents are NOT automatically loaded into memory
+- Memory must be dynamically allocated using malloc()
+- Data manipulation happens in RAM, not directly on disk
+
+Try modifying this content in memory before writing it to the output file.
+For example:
+- Replace spaces with underscores
+- Convert lowercase letters to uppercase
+- Count characters, lines, or words
+
+End of input file.
