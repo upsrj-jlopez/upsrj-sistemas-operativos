@@ -4,7 +4,7 @@
         {
             "label": "Run Script",
             "type": "shell",
-            "command": "./mem_analysis.sh",
+            "command": "./file_practice.sh",
             "options": {
                 "cwd": "${workspaceFolder}/src"
             },
@@ -17,7 +17,7 @@
         {
             "label": "Run Tests",
             "type": "shell",
-            "command": "./test/test_mem_analysis.sh",
+            "command": "./test/test_file_practice.sh",
             "options": {
                 "cwd": "${workspaceFolder}"
             },

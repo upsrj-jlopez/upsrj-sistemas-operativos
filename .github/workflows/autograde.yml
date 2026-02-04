@@ -18,18 +18,18 @@ jobs:
       # Step 2: Ensure scripts are executable
       - name: Set execute permissions
         run: |
-          chmod +x src/mem_analysis.sh
-          chmod +x test/test_mem_analysis.sh
+          chmod +x src/file_practice.sh
+          chmod +x test/test_file_practice.sh
 
       # Step 3: Run student script
-      - name: Run memory analysis script
+      - name: Run file management practice script
         run: |
           set -e
           cd src
-          ./mem_analysis.sh
+          ./file_practice.sh
 
       # Step 4: Run autograde tester
       - name: Run autograde tests
         run: |
           set -e
-          ./test/test_mem_analysis.sh
+          ./test/test_file_practice.sh
