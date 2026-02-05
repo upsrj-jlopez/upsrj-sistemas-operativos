@@ -105,6 +105,21 @@ pass "practice.txt exists"
 grep -q "SECTION A: FILE CREATION" out/file_practice.log \
     || fail "Missing Section A log entry"
 
+entries=$(grep "practice.txt" out/file_practice.log | wc -l)
+if [ "$entries" -lt 2 ]; then
+    fail "Log does not contain two metadata entries for practice.txt"
+fi
+pass "Two metadata entries found in log"
+
+first_ts=$(grep "practice.txt" out/file_practice.log | head -n1 | awk '{print $6,$7,$8}')
+second_ts=$(grep "practice.txt" out/file_practice.log | tail -n1 | awk '{print $6,$7,$8}')
+
+if [ "$first_ts" = "$second_ts" ]; then
+    fail "Timestamps did not change after second touch"
+else
+    pass "Timestamps updated correctly after second touch"
+fi
+
 pass "Section A logged correctly"
 
 ###############################################################################
@@ -118,6 +133,21 @@ grep -q "SECTION B: FILE EDITING" out/file_practice.log \
 
 grep -q "ANALYSIS:" out/file_practice.log \
     || warn "No analysis recorded for Section B"
+
+# Extra: validar que practice.txt tenga contenido
+size=$(stat -c%s practice.txt)
+if [ "$size" -eq 0 ]; then
+    fail "practice.txt is still empty, no content added"
+else
+    pass "practice.txt contains content (edited successfully)"
+fi
+
+# Extra: verificar que el log mencione algún editor
+if grep -qiE "vi|vim|nano" out/file_practice.log; then
+    pass "Log mentions an editor used"
+else
+    warn "No editor reference found in log"
+fi
 
 pass "Section B logged correctly"
 
