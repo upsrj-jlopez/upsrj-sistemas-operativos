@@ -1,0 +1,39 @@
+name: Classroom
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  autograde:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 0: Install build-essential
+      - name: Install build-essential
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential
+
+      # Step 1: Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 3: Build & Run student code
+      - name: Build & Run file handling code
+        run: |
+          cd src
+          make clean all run-save
+
+      # Step 4: Run Python tests
+      - name: Run autograde tests
+        run: |
+          python test/test_main.py
+  
+      # Step 5: Run unit tests
+      - name: Run unit tests
+        run: |
+          cd test
+          make clean unit-tests
