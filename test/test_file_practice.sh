@@ -2,193 +2,114 @@
 ###############################################################################
 # File: test_file_practice.sh
 # Purpose: Linear automated tester for File Management Practice
-# Subject: Operating Systems
 ###############################################################################
 
-###############################################################################
-# Color definitions
-###############################################################################
-RED="\e[31m"
-YELLOW="\e[33m"
-GREEN="\e[32m"
-RESET="\e[0m"
+source ./config.sh
+source ./utils.sh
 
-###############################################################################
-# Helper functions
-###############################################################################
-pass() {
-    echo -e "${GREEN}[PASS]${RESET} $1"
-}
-
-warn() {
-    echo -e "${YELLOW}[WARN]${RESET} $1"
-}
-
-fail() {
-    echo -e "${RED}[FAIL]${RESET} $1"
-    exit 1
-}
-
-get_section() {
-    local section_title="$1"
-    sed -n "/^=== ${section_title} ===/,/^=== /p" out/file_practice.log \
-        | sed '1d;$d'
-}
-
-###############################################################################
-# Initial checks
-###############################################################################
-echo "Running File Management Practice Tester (Linear Mode)"
+echo "Running $HEADER Tester (Linear Mode)"
 echo "------------------------------------------------------------"
 
 ###############################################################################
-# STEP 1: Project structure
+# Validaciones iniciales
 ###############################################################################
-echo "STEP 1: Checking project structure..."
-
-[ -d "src" ] || fail "Missing 'src/' directory"
-pass "'src/' directory exists"
-
-[ -d "out" ] || fail "Missing 'out/' directory"
-pass "'out/' directory exists"
-
-[ -f "src/file_practice.sh" ] || fail "Missing 'src/file_practice.sh'"
-pass "'file_practice.sh' found"
+check_project_structure
+check_header_and_author "$OUT_LOG" "$HEADER"
+check_script_execution "$SRC_DIR" "$SRC_FILE"
+check_log_and_sections "$OUT_LOG" SECTIONS[@]
 
 ###############################################################################
-# STEP 2: Script execution
+# Generar test cases a partir de SECTIONS
 ###############################################################################
-echo "------------------------------------------------------------"
-echo "STEP 2: Executing file_practice.sh..."
+i=1
+for section in "${SECTIONS[@]}"; do
 
-bash src/file_practice.sh > /dev/null 2>&1
-[ $? -eq 0 ] || fail "file_practice.sh failed to execute"
+    description=$(echo "$section" | cut -d':' -f2- | xargs | tr '[:upper:]' '[:lower:]')
+    test_case_header "$i" "$description"
 
-pass "Script executed successfully"
+    case $i in
+        1)
+            #######################################################################
+            # Validaciones de File Creation
+            #######################################################################
+            entries=$(grep $OUT_FILE $OUT_LOG | wc -l)
+            if [ "$entries" -lt 2 ]; then
+                fail "Log does not contain two metadata entries for practice.txt"
+            fi
+            pass "Two metadata entries found in log"
 
-###############################################################################
-# STEP 3: Log file generation
-###############################################################################
-echo "------------------------------------------------------------"
-echo "STEP 3: Validating log file creation..."
+            first_ts=$(grep $OUT_FILE $OUT_LOG | head -n1 | awk '{print $6,$7,$8}')
+            second_ts=$(grep $OUT_FILE $OUT_LOG | tail -n1 | awk '{print $6,$7,$8}')
 
-[ -f "out/file_practice.log" ] || fail "Log file was not generated"
+            if [ "$first_ts" = "$second_ts" ]; then
+                fail "Timestamps did not change after second touch"
+            else
+                pass "Timestamps updated correctly after second touch"
+            fi
+            ;;
+        2)
+            #######################################################################
+            # Validaciones de File Editing
+            #######################################################################
+            # Validar que practice.txt tenga contenido
+            size=$(stat -c%s "$OUT_FILE")
+            if [ "$size" -eq 0 ]; then
+                fail "${OUT_FILE} is still empty, no content added"
+            else
+                pass "${OUT_FILE} contains content (edited successfully)"
+            fi
 
-pass "Log file generated"
+            # Validar que el log mencione algún editor
+            if grep -qiE "vi|vim|nano" "$OUT_LOG"; then
+                pass "Log mentions an editor used"
+            else
+                fail "No editor reference found in log"
+            fi
+            ;;
+        3)
+            #######################################################################
+            # Validaciones de File Descriptors
+            #######################################################################
+            # Buscar patrón de stdout redirection
+            if grep -qE "1>|1>>" "$SRC_FILE"; then
+                pass "Stdout redirection found in script"
+            else
+                fail "No stdout redirection pattern found in script"
+            fi
 
-###############################################################################
-# STEP 4: Header and author
-###############################################################################
-echo "------------------------------------------------------------"
-echo "STEP 4: Validating header and author..."
+            # Buscar patrón de stderr redirection
+            if grep -qE "2>|2>>" "$SRC_FILE"; then
+                pass "Stderr redirection found in script"
+            else
+                fail "No stderr redirection pattern found in script"
+            fi
 
-grep -q "FILE MANAGEMENT PRACTICE" out/file_practice.log \
-    || fail "Missing practice header"
+            # Buscar patrón de stdin redirection
+            if grep -q "<" "$SRC_FILE"; then
+                pass "Stdin redirection found in script"
+            else
+                fail "No stdin redirection pattern found in script"
+            fi
+            ;;
+        4)
+            #######################################################################
+            # Validaciones de File Permissions
+            #######################################################################
+            # Verificar permisos finales: owner rw, group r, others none (mask 640)
+            perm=$(stat -c "%a" "$OUT_FILE")
+            if [ "$perm" -eq 640 ]; then
+                pass "${OUT_FILE} permissions correctly set to 640"
+            else
+                fail "${OUT_FILE} permissions incorrect (expected 640, got $perm)"
+            fi
+            ;;
+    esac
 
-grep -q "Author (GitHub):" out/file_practice.log \
-    || fail "Missing GitHub author line"
-
-grep -q "TODO_GITHUB_USERNAME" out/file_practice.log \
-    && fail "GitHub username TODO was not replaced"
-
-pass "Header and GitHub author correctly defined"
-
-###############################################################################
-# STEP 5: File Creation section
-###############################################################################
-echo "------------------------------------------------------------"
-echo "STEP 5: Checking file creation..."
-
-[ -f "practice.txt" ] || fail "practice.txt was not created"
-pass "practice.txt exists"
-
-grep -q "SECTION A: FILE CREATION" out/file_practice.log \
-    || fail "Missing Section A log entry"
-
-entries=$(grep "practice.txt" out/file_practice.log | wc -l)
-if [ "$entries" -lt 2 ]; then
-    fail "Log does not contain two metadata entries for practice.txt"
-fi
-pass "Two metadata entries found in log"
-
-first_ts=$(grep "practice.txt" out/file_practice.log | head -n1 | awk '{print $6,$7,$8}')
-second_ts=$(grep "practice.txt" out/file_practice.log | tail -n1 | awk '{print $6,$7,$8}')
-
-if [ "$first_ts" = "$second_ts" ]; then
-    fail "Timestamps did not change after second touch"
-else
-    pass "Timestamps updated correctly after second touch"
-fi
-
-pass "Section A logged correctly"
-
-###############################################################################
-# STEP 6: File Editing section
-###############################################################################
-echo "------------------------------------------------------------"
-echo "STEP 6: Checking file editing..."
-
-grep -q "SECTION B: FILE EDITING" out/file_practice.log \
-    || fail "Missing Section B log entry"
-
-grep -q "ANALYSIS:" out/file_practice.log \
-    || warn "No analysis recorded for Section B"
-
-# Extra: validar que practice.txt tenga contenido
-size=$(stat -c%s practice.txt)
-if [ "$size" -eq 0 ]; then
-    fail "practice.txt is still empty, no content added"
-else
-    pass "practice.txt contains content (edited successfully)"
-fi
-
-# Extra: verificar que el log mencione algún editor
-if grep -qiE "vi|vim|nano" out/file_practice.log; then
-    pass "Log mentions an editor used"
-else
-    warn "No editor reference found in log"
-fi
-
-pass "Section B logged correctly"
+    test_case_pass "$i" "$description"
+    i=$((i+1))
+done
 
 ###############################################################################
-# STEP 7: File Descriptors section
+# Validacion final
 ###############################################################################
-echo "------------------------------------------------------------"
-echo "STEP 7: Checking file descriptors..."
-
-grep -q "SECTION C: FILE DESCRIPTORS" out/file_practice.log \
-    || fail "Missing Section C log entry"
-
-# Check evidence of stdout, stderr, stdin redirection
-grep -q "Hello stdout" out/file_practice.log \
-    || warn "No stdout evidence found"
-
-grep -q "No such file or directory" out/file_practice.log \
-    || warn "No stderr evidence found"
-
-grep -q "lines" out/file_practice.log \
-    || warn "No stdin evidence found"
-
-pass "Section C logged correctly"
-
-###############################################################################
-# STEP 8: File Permissions section
-###############################################################################
-echo "------------------------------------------------------------"
-echo "STEP 8: Checking file permissions..."
-
-grep -q "SECTION D: FILE PERMISSIONS" out/file_practice.log \
-    || fail "Missing Section D log entry"
-
-# Verify final permissions: owner rw, group r, others none (mask 640)
-perm=$(stat -c "%a" practice.txt)
-if [ "$perm" -eq 640 ]; then
-    pass "practice.txt permissions correctly set to 640"
-else
-    fail "practice.txt permissions incorrect (expected 640, got $perm)"
-fi
-
-###############################################################################
-echo "------------------------------------------------------------"
-echo "All checks completed."
+finalize_checks

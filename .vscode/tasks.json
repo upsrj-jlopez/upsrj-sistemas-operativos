@@ -17,9 +17,9 @@
         {
             "label": "Run Tests",
             "type": "shell",
-            "command": "./test/test_file_practice.sh",
+            "command": "./test_file_practice.sh",
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/test"
             },
             "group": {
                 "kind": "build",

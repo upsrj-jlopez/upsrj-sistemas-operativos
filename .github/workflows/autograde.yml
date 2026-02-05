@@ -19,6 +19,8 @@ jobs:
       - name: Set execute permissions
         run: |
           chmod +x src/file_practice.sh
+          chmod +x test/config.sh
+          chmod +x test/utils.sh
           chmod +x test/test_file_practice.sh
 
       # Step 3: Run student script
@@ -32,4 +34,5 @@ jobs:
       - name: Run autograde tests
         run: |
           set -e
-          ./test/test_file_practice.sh
+          cd test
+          ./test_file_practice.sh
