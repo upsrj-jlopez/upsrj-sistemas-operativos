@@ -1,0 +1,38 @@
+name: Classroom
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  autograde:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Ensure scripts are executable
+      - name: Set execute permissions
+        run: |
+          chmod +x src/file_practice.sh
+          chmod +x test/config.sh
+          chmod +x test/utils.sh
+          chmod +x test/test_file_practice.sh
+
+      # Step 3: Run student script
+      - name: Run file management practice script
+        run: |
+          set -e
+          cd src
+          ./file_practice.sh
+
+      # Step 4: Run autograde tester
+      - name: Run autograde tests
+        run: |
+          set -e
+          cd test
+          ./test_file_practice.sh
