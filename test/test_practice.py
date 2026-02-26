@@ -1,6 +1,7 @@
 import subprocess
 import pytest
 import os
+import re
 
 ROOT_DIR   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -38,127 +39,83 @@ def out_log():
         return file.read().splitlines()
 
 
-def test_cron_lines(out_log):
-    # Verifica que las tres líneas con CRON estén presentes en OUT_LOG
-    expected = [
-        "Feb 25 08:12:03 ubuntu-server CRON[1024]: (root) CMD (run-parts /etc/cron.hourly)",
-        "Feb 25 08:19:01 ubuntu-server CRON[1120]: (root) CMD (backup.sh)",
-        "Feb 25 08:29:55 ubuntu-server CRON[1400]: (root) CMD (logrotate /etc/logrotate.conf)"
-    ]
-    for line in expected:
-        assert line in out_log
+@pytest.fixture
+def src_data():
+    """
+    Fixture que lee el archivo SRC_DATA definido en el script.
+    SRC_DATA = ../src/syslog
+    Devuelve las líneas como lista para que cada test las valide.
+    """
+
+    with open(SRC_DATA, "r", encoding="utf-8") as file:
+        return file.read().splitlines()
 
 
-def test_systemd_lines(out_log):
-    # Verifica que existan líneas con la palabra "systemd"
-    assert any("systemd" in line for line in out_log)
+def contains_expected_block(out_log, expected):
+    """
+    Busca si el bloque 'expected' aparece en 'out_log' de forma consecutiva.
+    Recorre todas las posiciones donde aparece expected[0] y valida el bloque.
+    """
+    for i, line in enumerate(out_log):
+        if line == expected[0]:
+            candidate_block = out_log[i:i + len(expected)]
+            if candidate_block == expected:
+                return True
+    return False
 
 
-def test_ssh_lines(out_log):
-    # Verifica que existan líneas con la palabra "ssh"
-    assert any("ssh" in line for line in out_log)
+def contains_expected_block(out_log, expected):
+    # Convertimos todo a string para evitar problemas de tipo
+    out_log_str = [str(line).strip() for line in out_log]
+    expected_str = [str(line).strip() for line in expected]
+
+    # Caso especial: expected es un único número
+    if len(expected_str) == 1 and expected_str[0].isdigit():
+        return expected_str[0] in out_log_str
+
+    # Caso general: bloque consecutivo
+    for i, line in enumerate(out_log_str):
+        if line == expected_str[0]:
+            candidate_block = out_log_str[i:i + len(expected_str)]
+            if candidate_block == expected_str:
+                return True
+    return False
 
 
-def test_sudo_count(out_log):
-    # Verifica que el conteo de líneas con "sudo" sea exactamente 3
-    count_line = [line for line in out_log if line.isdigit()]
-    assert count_line and int(count_line[0]) == 3
+def format_block(block, title="Bloque"):
+    if not block:
+        return f"{title}: <vacío>"
+    return f"{title}:\n" + "\n".join(block)
 
 
-def test_failed_password(out_log):
-    # Verifica que las dos líneas de "Failed password" estén presentes
-    expected = [
-        "Feb 25 08:17:10 ubuntu-server sshd[2102]: Failed password for invalid user admin from 10.0.0.25 port 60211 ssh2",
-        "Feb 25 08:26:45 ubuntu-server sshd[2305]: Failed password for root from 203.0.113.45 port 49821 ssh2"
-    ]
-    for line in expected:
-        assert line in out_log
+@pytest.mark.parametrize("builder", [
+    pytest.param(lambda src: [line for line in src if "CRON" in line],                                                              id="case_1"),
+    pytest.param(lambda src: [line for line in src if "systemd" in line],                                                           id="case_2"),
+    pytest.param(lambda src: [line for line in src if "ssh" in line],                                                               id="case_3"),
+    pytest.param(lambda src: [str(len([line for line in src if "sudo" in line]))],                                                  id="case_4"),
+    pytest.param(lambda src: [line for line in src if "Failed password" in line],                                                   id="case_5"),
+    pytest.param(lambda src: [line for line in src if re.search(r"\b\d{1,3}(?:\.\d{1,3}){3}\b", line)],                             id="case_6"),
+    pytest.param(lambda src: [line for line in src if "usb" in line],                                                               id="case_7"),
+    pytest.param(lambda src: [str(len([line for line in src if "kernel" in line]))],                                                id="case_8"),
+    pytest.param(lambda src: [line for line in src if "Accepted" in line],                                                          id="case_9"),
+    pytest.param(lambda src: [line for line in src if "NetworkManager" in line and "<warn>" in line],                               id="case_10"),
+    pytest.param(lambda src: sorted([line for line in src if "root" in line]),                                                      id="case_11"),
+    pytest.param(lambda src: [line for line in src if "CRON" in line] + [line for line in src if "logrotate" in line],              id="case_12"),
+    pytest.param(lambda src: [str(len([line for line in src if "apt" in line]))],                                                   id="case_13"),
+    pytest.param(lambda src: [line for line in src if "session opened" in line or "session closed" in line],                        id="case_14"),
+    pytest.param(lambda src: [line for line in src if "systemd" not in line],                                                       id="case_15"),
+    pytest.param(lambda src: [part for line in src if "ssh" in line for part in line.split() if part.count(".") == 3],              id="case_16"),
+    pytest.param(lambda src: [str(len(set([part for line in src if "port" in line for part in line.split() if part.isdigit()])))],  id="case_17"),
+    pytest.param(lambda src: [line for line in src if "Starting" in line] + [line for line in src if "Started" in line],            id="case_18"),
+    pytest.param(lambda src: [line for line in src if "Stopping" in line or "Stopped" in line],                                     id="case_19"),
+    pytest.param(lambda src: ["Éxito: se encontró 'sudo'"],                                                                         id="case_20"),
+])
+def test_patterns(src_data, out_log, builder, request):
+    expected = builder(src_data)
+    assert contains_expected_block(out_log, expected), (
+        f"Fallo en {request.node.callspec.id}\n\n"
+        f"{format_block(expected, 'Esperado')}\n\n"
+        f"{format_block(out_log, 'Actual')}"
+    )
 
 
-def test_ip_addresses(out_log):
-    # Verifica que las direcciones IP aparezcan en OUT_LOG
-    ips = ["192.168.1.50", "10.0.0.25", "172.16.0.8", "203.0.113.45"]
-    for ip in ips:
-        assert any(ip in line for line in out_log)
-
-
-def test_usb_line(out_log):
-    # Verifica que exista una línea con "usb"
-    assert any("usb" in line for line in out_log)
-
-
-def test_kernel_count(out_log):
-    # Verifica que el conteo de líneas con "kernel" sea exactamente 2
-    count_line = [line for line in out_log if line.isdigit()]
-    assert count_line and int(count_line[-1]) == 2
-
-
-def test_accepted_lines(out_log):
-    # Verifica que existan líneas con "Accepted"
-    assert any("Accepted" in line for line in out_log)
-
-
-def test_networkmanager_warn(out_log):
-    # Verifica que exista una línea con "<warn>"
-    assert any("<warn>" in line for line in out_log)
-
-
-def test_root_sorted(out_log):
-    # Verifica que las líneas con "root" estén ordenadas alfabéticamente
-    root_lines = [line for line in out_log if "root" in line]
-    assert root_lines == sorted(root_lines)
-
-
-def test_cron_and_logrotate(out_log):
-    # Verifica que existan líneas con "CRON" y con "logrotate"
-    assert any("CRON" in line for line in out_log)
-    assert any("logrotate" in line for line in out_log)
-
-
-def test_apt_count(out_log):
-    # Verifica que el conteo de líneas con "apt" sea exactamente 3
-    count_line = [line for line in out_log if line.isdigit()]
-    assert count_line and int(count_line[0]) == 3
-
-
-def test_sessions(out_log):
-    # Verifica que existan líneas con "session opened" y "session closed"
-    assert any("session opened" in line for line in out_log)
-    assert any("session closed" in line for line in out_log)
-
-
-def test_not_systemd(out_log):
-    # Verifica que las líneas marcadas como NOT_SYSTEMD no contengan "systemd"
-    assert all("systemd" not in line for line in out_log if "NOT_SYSTEMD" in line)
-
-
-def test_ssh_ips(out_log):
-    # Verifica que las direcciones IP de conexiones ssh aparezcan en OUT_LOG
-    ips = ["192.168.1.50", "10.0.0.25", "172.16.0.8", "203.0.113.45"]
-    for ip in ips:
-        assert ip in " ".join(out_log)
-
-
-def test_ports(out_log):
-    # Verifica que los puertos usados en ssh aparezcan en OUT_LOG
-    ports = ["53422", "60211", "42311", "49821"]
-    for port in ports:
-        assert port in " ".join(out_log)
-
-
-def test_starting_and_started(out_log):
-    # Verifica que existan líneas con "Starting" y con "Started"
-    assert any("Starting" in line for line in out_log)
-    assert any("Started" in line for line in out_log)
-
-
-def test_stopping_and_stopped(out_log):
-    # Verifica que existan líneas con "Stopping" y con "Stopped"
-    assert any("Stopping" in line for line in out_log)
-    assert any("Stopped" in line for line in out_log)
-
-
-def test_sudo_success(out_log):
-    # Verifica que existan líneas con "sudo" y un mensaje de éxito
-    assert any("sudo" in line for line in out_log)
-    assert any("Éxito" in line or "Success" in line for line in out_log)

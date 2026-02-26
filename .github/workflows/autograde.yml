@@ -37,4 +37,4 @@ jobs:
       - name: Run tests
         run: |
           cd test
-          pytest -q --tb=short --disable-warnings test_main.py
+          pytest -q --tb=short --disable-warnings
