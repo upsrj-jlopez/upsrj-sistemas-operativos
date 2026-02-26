@@ -15,24 +15,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Ensure scripts are executable
-      - name: Set execute permissions
-        run: |
-          chmod +x src/file_practice.sh
-          chmod +x test/config.sh
-          chmod +x test/utils.sh
-          chmod +x test/test_file_practice.sh
+      # Step 2: Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
 
-      # Step 3: Run student script
-      - name: Run file management practice script
+      # Step 3: Install dependencies
+      - name: Install system dependencies
         run: |
-          set -e
-          cd src
-          ./file_practice.sh
+          sudo apt-get update
+          sudo apt-get install -y build-essential
 
-      # Step 4: Run autograde tester
-      - name: Run autograde tests
+      - name: Install Python dependencies
         run: |
-          set -e
+          python -m pip install --upgrade pip
+          pip install pytest
+          # pip install -r requirements.txt
+
+      # Step 4: Build project and run tests
+      - name: Run tests
+        run: |
           cd test
-          ./test_file_practice.sh
+          pytest -q --tb=short --disable-warnings
