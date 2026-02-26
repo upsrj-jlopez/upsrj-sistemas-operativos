@@ -2,29 +2,18 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Run Script",
+            "label": "Run Script & Tests",
             "type": "shell",
-            "command": "./file_practice.sh",
-            "options": {
-                "cwd": "${workspaceFolder}/src"
-            },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "Run Tests",
-            "type": "shell",
-            "command": "./test_file_practice.sh",
+            "command": "pytest",
+            "args": [
+                "-q",
+                "--tb=short",
+                "--disable-warnings"
+            ],
             "options": {
                 "cwd": "${workspaceFolder}/test"
             },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
+            "group": "build",
             "problemMatcher": []
         }
     ]

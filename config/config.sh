@@ -5,12 +5,14 @@
 ###############################################################################
 
 # Project structure
-SRC_DIR="../src"
-SRC_FILE="${SRC_DIR}/file_practice.sh"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 
-OUT_DIR="../out"
-OUT_FILE="${OUT_DIR}/practice.txt"
-OUT_LOG="${OUT_DIR}/file_practice.log"
+SRC_DIR="${ROOT_DIR}/src"
+SRC_DATA="${SRC_DIR}/syslog"
+SRC_SCRIPT="${SRC_DIR}/practice.sh"
+
+OUT_DIR="${ROOT_DIR}/out"
+OUT_LOG="${OUT_DIR}/practice.log"
 
 STRUCTURE=(
     "dir:$SRC_DIR"

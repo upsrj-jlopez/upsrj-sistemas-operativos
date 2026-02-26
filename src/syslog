@@ -1,0 +1,24 @@
+Feb 25 08:12:01 ubuntu-server systemd[1]: Started Daily apt download activities.
+Feb 25 08:12:03 ubuntu-server CRON[1024]: (root) CMD (run-parts /etc/cron.hourly)
+Feb 25 08:15:44 ubuntu-server sshd[2048]: Accepted password for jesus from 192.168.1.50 port 53422 ssh2
+Feb 25 08:16:02 ubuntu-server sudo:    jesus : TTY=pts/0 ; PWD=/home/jesus ; USER=root ; COMMAND=/usr/bin/apt update
+Feb 25 08:16:05 ubuntu-server systemd[1]: Starting Daily apt upgrade and clean activities...
+Feb 25 08:16:40 ubuntu-server kernel: [ 1234.567890] usb 1-1: new high-speed USB device number 7 using xhci_hcd
+Feb 25 08:17:10 ubuntu-server sshd[2102]: Failed password for invalid user admin from 10.0.0.25 port 60211 ssh2
+Feb 25 08:17:15 ubuntu-server sshd[2102]: Connection closed by invalid user admin 10.0.0.25 port 60211 [preauth]
+Feb 25 08:18:22 ubuntu-server systemd[1]: Started Daily apt upgrade and clean activities.
+Feb 25 08:19:01 ubuntu-server CRON[1120]: (root) CMD (backup.sh)
+Feb 25 08:20:33 ubuntu-server sshd[2201]: Accepted publickey for root from 172.16.0.8 port 42311 ssh2
+Feb 25 08:22:14 ubuntu-server NetworkManager[850]: <info>  [1677312134.1234] device (eth0): state change: activated -> deactivating
+Feb 25 08:22:16 ubuntu-server NetworkManager[850]: <warn>  [1677312136.5678] device (eth0): link disconnected
+Feb 25 08:22:20 ubuntu-server NetworkManager[850]: <info>  [1677312140.8910] device (eth0): state change: disconnected -> activated
+Feb 25 08:23:45 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by jesus(uid=0)
+Feb 25 08:24:01 ubuntu-server sudo: pam_unix(sudo:session): session closed for user root
+Feb 25 08:25:33 ubuntu-server kernel: [ 1300.123456] EXT4-fs (sda1): mounted filesystem with ordered data mode
+Feb 25 08:26:45 ubuntu-server sshd[2305]: Failed password for root from 203.0.113.45 port 49821 ssh2
+Feb 25 08:27:02 ubuntu-server sshd[2305]: Received disconnect from 203.0.113.45 port 49821:11: Bye Bye [preauth]
+Feb 25 08:28:10 ubuntu-server systemd[1]: Stopping User Manager for UID 1000...
+Feb 25 08:28:12 ubuntu-server systemd[1500]: Stopped target Default.
+Feb 25 08:29:55 ubuntu-server CRON[1400]: (root) CMD (logrotate /etc/logrotate.conf)
+Feb 25 08:30:01 ubuntu-server systemd[1]: Starting Cleanup of Temporary Directories...
+Feb 25 08:30:02 ubuntu-server systemd[1]: Started Cleanup of Temporary Directories.
